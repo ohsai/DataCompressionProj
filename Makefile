@@ -18,14 +18,14 @@ CXXFLAGS += -std=c++11 -O1 -Wall -Wextra -fsanitize=undefined -Ilib
 .PHONY: all clean
 
 
-MAIN = main_glb
+MAIN = main
 LIB = lib
 
 HUFFMAN = $(LIB)/huffman
-HUFFMAN_OBJ = CanonicalCode.o CodeTree.o FrequencyTable.o HuffmanCoder.o
+HUFFMAN_OBJ = CanonicalCode.o CodeTree.o FrequencyTable.o HuffmanCoder.o HuffmanCompress.o HuffmanDecompress.o AdaptiveHuffmanCompress.o AdaptiveHuffmanDecompress.o
 
 ARITHMETIC = $(LIB)/arithmetic
-ARITHMETIC_OBJ = ArithmeticCoder.o BitIoStream.o FrequencyTable.o PpmModel.o
+ARITHMETIC_OBJ = ArithmeticCoder.o BitIoStream.o FrequencyTable.o PpmModel.o ArithmeticCompress.o ArithmeticDecompress.o 
 
 TUNSTALL_OBJ = $(LIB)/tunstall.o
 

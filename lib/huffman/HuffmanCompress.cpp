@@ -26,7 +26,67 @@
 
 using std::uint32_t;
 
-
+int huffman_compress(std::string inputFile, std::string outputFile){
+	
+	
+	// Read input file once to compute symbol frequencies.
+	// The resulting generated code is optimal for static Huffman coding and also canonical.
+	std::ifstream in(inputFile.c_str(), std::ios::binary );
+	std::ofstream out(outputFile.c_str(), std::ios::binary);
+	BitOutputStream bout(out);
+	FrequencyTable freqs(std::vector<uint32_t>(257, 0));
+	while (true) {
+		int b = in.get();
+		if (b == EOF)
+			break;
+		if (b < 0 || b > 255)
+			throw std::logic_error("Assertion error");
+		freqs.increment(static_cast<uint32_t>(b));
+	}
+	freqs.increment(256);  // EOF symbol gets a frequency of 1
+	CodeTree code = freqs.buildCodeTree();
+	const CanonicalCode canonCode(code, freqs.getSymbolLimit());
+	// Replace code tree with canonical one. For each symbol,
+	// the code value may change but the code length stays the same.
+	code = canonCode.toCodeTree();
+	
+	// Read input file again, compress with Huffman coding, and write output file
+	in.clear();
+	in.seekg(0);
+	try {
+		
+		// Write code length table
+		for (uint32_t i = 0; i < canonCode.getSymbolLimit(); i++) {
+			uint32_t val = canonCode.getCodeLength(i);
+			// For this file format, we only support codes up to 255 bits long
+			if (val >= 256)
+				throw std::domain_error("The code for a symbol is too long");
+			// Write value as 8 bits in big endian
+			for (int j = 7; j >= 0; j--)
+				bout.write((val >> j) & 1);
+		}
+		
+		HuffmanEncoder enc(bout);
+		enc.codeTree = &code;
+		while (true) {
+			// Read and encode one byte
+			int symbol = in.get();
+			if (symbol == EOF)
+				break;
+			if (symbol < 0 || symbol > 255)
+				throw std::logic_error("Assertion error");
+			enc.write(static_cast<uint32_t>(symbol));
+		}
+		enc.write(256);  // EOF
+		bout.finish();
+		return EXIT_SUCCESS;
+		
+	} catch (const char *msg) {
+		std::cerr << msg << std::endl;
+		return EXIT_FAILURE;
+	}
+}
+/*
 int main(int argc, char *argv[]) {
 	// Handle command line arguments
 	if (argc != 3) {
@@ -93,3 +153,4 @@ int main(int argc, char *argv[]) {
 		return EXIT_FAILURE;
 	}
 }
+*/

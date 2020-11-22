@@ -26,18 +26,10 @@ using std::uint32_t;
 static bool isPowerOf2(uint32_t x);
 
 
-int main(int argc, char *argv[]) {
-	// Handle command line arguments
-	if (argc != 3) {
-		std::cerr << "Usage: " << argv[0] << " InputFile OutputFile" << std::endl;
-		return EXIT_FAILURE;
-	}
-	const char *inputFile  = argv[1];
-	const char *outputFile = argv[2];
-	
+int adapt_huffman_decompress(std::string inputFile, std::string outputFile){
 	// Perform file decompression
-	std::ifstream in(inputFile, std::ios::binary);
-	std::ofstream out(outputFile, std::ios::binary);
+	std::ifstream in(inputFile.c_str(), std::ios::binary);
+	std::ofstream out(outputFile.c_str(), std::ios::binary);
 	BitInputStream bin(in);
 	try {
 		
