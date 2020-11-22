@@ -4,13 +4,20 @@
 #include "stdio.h"
 #include "stdlib.h"
 #include <time.h>
-
+#include "golomb.hpp"
+/*
 #define p 0.9655
 #define m 9
 #define b (int)ceil(logf((double)m)/logf(2.0))
 #define c (int)pow(2.0,(double)b)-m
 #define size 10000
+*/
 
+float p = 0.9655;
+int m = 9;
+int b = (int)ceil(logf((double)m)/logf(2.0));
+int c = (int)pow(2.0,(double)b)-m;
+const int size =  10000;
 double Ravn() { // равномерное распределение
 	double result = (double)(rand()) / RAND_MAX;
 	return result;

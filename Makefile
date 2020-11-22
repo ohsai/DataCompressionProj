@@ -19,6 +19,7 @@ CXXFLAGS += -std=c++11 -O1 -Wall -Wextra -fsanitize=undefined -Ilib
 
 
 MAIN = main_glb
+LIB = lib
 
 HUFFMAN = $(LIB)/huffman
 HUFFMAN_OBJ = CanonicalCode.o CodeTree.o FrequencyTable.o HuffmanCoder.o
@@ -26,18 +27,17 @@ HUFFMAN_OBJ = CanonicalCode.o CodeTree.o FrequencyTable.o HuffmanCoder.o
 ARITHMETIC = $(LIB)/arithmetic
 ARITHMETIC_OBJ = ArithmeticCoder.o BitIoStream.o FrequencyTable.o PpmModel.o
 
-TUNSTALL_OBJ = tunstall.o
+TUNSTALL_OBJ = $(LIB)/tunstall.o
 
-LZ_OBJ = lz77_78_W.o
+LZ_OBJ = $(LIB)/lz77_78_W.o
 
-GOLOMB_OBJ = golomb.o
+GOLOMB_OBJ = $(LIB)/golomb.o
 
 OBJDIR = obj
 MAIN_OBJ = $(OBJDIR)/$(MAIN).o
 DEPDIR = .deps
 
-LIB = lib
-OBJS = $(addprefix $(ARITHMETIC)/, $(ARITHMETIC_OBJ)) $(addprefix $(HUFFMAN)/, $(HUFFMAN_OBJ)) $(TUNSTALL_OBJ) $(LZ_OBJ) $(MAIN_OBJ)
+OBJS = $(addprefix $(ARITHMETIC)/, $(ARITHMETIC_OBJ)) $(addprefix $(HUFFMAN)/, $(HUFFMAN_OBJ)) $(TUNSTALL_OBJ) $(LZ_OBJ) $(GOLOMB_OBJ) $(MAIN_OBJ)
 all: $(MAIN)
 
 clean:
@@ -54,13 +54,13 @@ $(ARITHMETIC)/%.o: $(ARITHMETIC)/%.cpp $(DEPDIR)/timestamp
 $(HUFFMAN)/%.o: $(HUFFMAN)/%.cpp $(DEPDIR)/timestamp
 	$(CXX) $(CXXFLAGS) -c -o $@ -MMD -MF $(DEPDIR)/$*.d $<
 
-$(TUNSTALL_OBJ): $(LIB)/$(TUNSTALL_OBJ:.o=.cpp) 
+$(TUNSTALL_OBJ): $(TUNSTALL_OBJ:.o=.cpp) 
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
-$(LZ_OBJ): $(LIB)/$(LZ_OBJ:.o=.cpp) 
+$(LZ_OBJ): $(LZ_OBJ:.o=.cpp) 
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
-$(GOLOMB_OBJ): $(LIB)/$(GOLOMB_OBJ:.o=.c) 
+$(GOLOMB_OBJ): $(GOLOMB_OBJ:.o=.cpp) 
 	$(CXX) $(CXXFLAGS) -c -o $@ $< -lz -lm
 
 $(MAIN_OBJ): $(MAIN).cpp $(DEPDIR)/timestamp
