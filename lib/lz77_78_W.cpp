@@ -134,6 +134,7 @@ string LZ77(string input, int option)
 
 		// Declare an arry for final result called 'result_ary'
 		int** result_ary = new int*[3];
+		cout <<"length : " << length << endl;
 		for (int i = 0; i < length; ++i)
 			result_ary[i] = new int[length];
 		// Set result_ary elements value to 0 to prevent previous values

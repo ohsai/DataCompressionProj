@@ -21,200 +21,45 @@
 #include <vector>
 #include <limits>
 #include <string>
-/*
-#include "huffman/BitIoStream.hpp"
-#include "huffman/CanonicalCode.hpp"
-#include "huffman/FrequencyTable.hpp"
-#include "huffman/HuffmanCoder.hpp"
-*/
+#include <sys/time.h>
+
 #include "huffman/huffman.hpp"
 #include "arithmetic/arithmetic.hpp"
+#include "lz77.h"
+#include <sstream>
+
+struct bm {
+    struct timeval b;
+    std::string msg;
+    bm(const std::string& s) : msg(s) {
+        gettimeofday(&b, NULL);
+    }
+    ~bm() {
+        struct timeval e;
+        gettimeofday(&e, NULL);
+        size_t a = (e.tv_sec*1e6 + e.tv_usec);
+        size_t q = (b.tv_sec*1e6 + b.tv_usec);
+        std::cout << msg << ": " << ((double)a-(double)q)/1e6 << std::endl;
+    }
+};
+
+struct bm_s {
+    struct timeval b;
+    double& _s;
+    bm_s(double& s) : _s(s) {
+        gettimeofday(&b, NULL);
+    }
+    ~bm_s() {
+        struct timeval e;
+        gettimeofday(&e, NULL);
+        size_t a = (e.tv_sec*1e6 + e.tv_usec);
+        size_t q = (b.tv_sec*1e6 + b.tv_usec);
+        _s += ((double)a-(double)q)/1e6;
+    }
+};
+
 
 using std::uint32_t;
-/*
-int arith_compress(std::string inputFile, std::string outputFile){
-	std::ifstream in(inputFile.c_str(), std::ios::binary);
-	SimpleFrequencyTable freqs(std::vector<uint32_t>(257, 0));
-	freqs.increment(256);  // EOF symbol gets a frequency of 1
-	while (true) {
-		int b = in.get();
-		if (b == EOF)
-			break;
-		if (b < 0 || b > 255)
-			throw std::logic_error("Assertion error");
-		freqs.increment(static_cast<uint32_t>(b));
-	}
-	
-	// Read input file again, compress with arithmetic coding, and write output file
-	in.clear();
-	in.seekg(0);
-	std::ofstream out(outputFile.c_str(), std::ios::binary);
-	BitOutputStream bout(out);
-	try {
-		
-		// Write frequency table
-		for (uint32_t i = 0; i < 256; i++) {
-			uint32_t freq = freqs.get(i);
-			for (int j = 31; j >= 0; j--)
-				bout.write(static_cast<int>((freq >> j) & 1));  // Big endian
-		}
-		
-		ArithmeticEncoder enc(32, bout);
-		while (true) {
-			// Read and encode one byte
-			int symbol = in.get();
-			if (symbol == EOF)
-				break;
-			if (symbol < 0 || symbol > 255)
-				throw std::logic_error("Assertion error");
-			enc.write(freqs, static_cast<uint32_t>(symbol));
-		}
-		
-		enc.write(freqs, 256);  // EOF
-		enc.finish();  // Flush remaining code bits
-		bout.finish();
-		return EXIT_SUCCESS;
-		
-	} catch (const char *msg) {
-		std::cerr << msg << std::endl;
-		return EXIT_FAILURE;
-	}
-}
-int arith_decompress(std::string inputFile, std::string outputFile){
-	// Perform file decompression
-	std::ifstream in(inputFile.c_str(), std::ios::binary);
-	std::ofstream out(outputFile.c_str(), std::ios::binary);
-	BitInputStream bin(in);
-	try {
-		
-		// Read frequency table
-		SimpleFrequencyTable freqs(std::vector<uint32_t>(257, 0));
-		for (uint32_t i = 0; i < 256; i++) {
-			uint32_t freq = 0;
-			for (int j = 0; j < 32; j++)
-				freq = (freq << 1) | bin.readNoEof();  // Big endian
-			freqs.set(i, freq);
-		}
-		freqs.increment(256);  // EOF symbol
-		
-		ArithmeticDecoder dec(32, bin);
-		while (true) {
-			uint32_t symbol = dec.read(freqs);
-			if (symbol == 256)  // EOF symbol
-				break;
-			int b = static_cast<int>(symbol);
-			if (std::numeric_limits<char>::is_signed)
-				b -= (b >> 7) << 8;
-			out.put(static_cast<char>(b));
-		}
-		return EXIT_SUCCESS;
-		
-	} catch (const char *msg) {
-		std::cerr << msg << std::endl;
-		return EXIT_FAILURE;
-	}
-}
-*/
-/*
-int compress(std::string inputFile, std::string outputFile){
-	
-	
-	// Read input file once to compute symbol frequencies.
-	// The resulting generated code is optimal for static Huffman coding and also canonical.
-	std::ifstream in(inputFile.c_str(), std::ios::binary );
-	std::ofstream out(outputFile.c_str(), std::ios::binary);
-	BitOutputStream bout(out);
-	FrequencyTable freqs(std::vector<uint32_t>(257, 0));
-	while (true) {
-		int b = in.get();
-		if (b == EOF)
-			break;
-		if (b < 0 || b > 255)
-			throw std::logic_error("Assertion error");
-		freqs.increment(static_cast<uint32_t>(b));
-	}
-	freqs.increment(256);  // EOF symbol gets a frequency of 1
-	CodeTree code = freqs.buildCodeTree();
-	const CanonicalCode canonCode(code, freqs.getSymbolLimit());
-	// Replace code tree with canonical one. For each symbol,
-	// the code value may change but the code length stays the same.
-	code = canonCode.toCodeTree();
-	
-	// Read input file again, compress with Huffman coding, and write output file
-	in.clear();
-	in.seekg(0);
-	try {
-		
-		// Write code length table
-		for (uint32_t i = 0; i < canonCode.getSymbolLimit(); i++) {
-			uint32_t val = canonCode.getCodeLength(i);
-			// For this file format, we only support codes up to 255 bits long
-			if (val >= 256)
-				throw std::domain_error("The code for a symbol is too long");
-			// Write value as 8 bits in big endian
-			for (int j = 7; j >= 0; j--)
-				bout.write((val >> j) & 1);
-		}
-		
-		HuffmanEncoder enc(bout);
-		enc.codeTree = &code;
-		while (true) {
-			// Read and encode one byte
-			int symbol = in.get();
-			if (symbol == EOF)
-				break;
-			if (symbol < 0 || symbol > 255)
-				throw std::logic_error("Assertion error");
-			enc.write(static_cast<uint32_t>(symbol));
-		}
-		enc.write(256);  // EOF
-		bout.finish();
-		return EXIT_SUCCESS;
-		
-	} catch (const char *msg) {
-		std::cerr << msg << std::endl;
-		return EXIT_FAILURE;
-	}
-}
-int decompress(std::string inputFile, std::string outputFile){
-	// Perform file decompression
-	std::ifstream in(inputFile.c_str(), std::ios::binary);
-	std::ofstream out(outputFile.c_str(), std::ios::binary);
-	BitInputStream bin(in);
-	try {
-		
-		// Read code length table
-		std::vector<uint32_t> codeLengths;
-		for (int i = 0; i < 257; i++) {
-			// For this file format, we read 8 bits in big endian
-			uint32_t val = 0;
-			for (int j = 0; j < 8; j++)
-				val = (val << 1) | bin.readNoEof();
-			codeLengths.push_back(val);
-		}
-		const CanonicalCode canonCode(codeLengths);
-		const CodeTree code = canonCode.toCodeTree();
-		
-		HuffmanDecoder dec(bin);
-		dec.codeTree = &code;
-		while (true) {
-			uint32_t symbol = dec.read();
-			if (symbol == 256)  // EOF symbol
-				break;
-			int b = static_cast<int>(symbol);
-			if (std::numeric_limits<char>::is_signed)
-				b -= (b >> 7) << 8;
-			out.put(static_cast<char>(b));
-		}
-		return EXIT_SUCCESS;
-		
-	} catch (const char *msg) {
-		std::cerr << msg << std::endl;
-		return EXIT_FAILURE;
-	}
-}
-*/
-
 
 long fs_b(std::string filename){
 	std::ifstream in(filename.c_str(), std::ios::binary );
@@ -224,7 +69,69 @@ long fs_b(std::string filename){
 	in.close();
 	return end-begin;
 }
+int lz77_compress(std::string inputFile, std::string outputFile, std::string& origin){
+	try {
+		
+		std::ifstream in(inputFile.c_str(),  std::ios::in | std::ios::binary);
 
+		std::string data;
+		in.seekg(0, std::ios::end);
+		data.resize(in.tellg());
+		in.seekg(0, std::ios::beg);
+		in.read(&data[0], data.size());
+		in.close();
+		origin = data;
+
+
+		std::string comp;
+		lz77::compress_t compress;
+		{
+		bm _x2("Compression time");
+		comp = compress.feed(data);
+		}
+		std::ofstream out(outputFile.c_str());
+		out << comp;
+		out.close();
+		return EXIT_SUCCESS;
+	} catch (const char *msg) {
+		std::cerr << msg << std::endl;
+		return EXIT_FAILURE;
+	}
+}
+int lz77_decompress(std::string inputFile, std::string outputFile, std::string& uncomp){
+	try {
+		
+		std::ifstream in(inputFile.c_str(),  std::ios::in | std::ios::binary);
+
+		std::string data;
+		in.seekg(0, std::ios::end);
+		data.resize(in.tellg());
+		in.seekg(0, std::ios::beg);
+		in.read(&data[0], data.size());
+		in.close();
+
+		std::string decomp;
+		lz77::decompress_t decompress;
+		{
+		bm _x2("Decompression time");
+		
+		std::string extra;
+
+		if (!decompress.feed(data, extra) || extra.size() > 0) {
+		    std::cout << "Sanity error: failed to decompress whole buffer." << std::endl;
+		    return 1;
+		}
+		}
+		std::ofstream out(outputFile.c_str());
+		out << decompress.result();
+		uncomp = decompress.result();
+		out.close();
+		return EXIT_SUCCESS;
+	} catch (const char *msg) {
+		std::cerr << msg << std::endl;
+		return EXIT_FAILURE;
+	}
+}
 int main(int argc, char *argv[]) {
 	// Handle command line arguments
 	if (argc != 2) {
@@ -241,24 +148,39 @@ int main(int argc, char *argv[]) {
 	std::cout << "input size: " << fs_b(inputFilename) << " bytes." << std::endl;
 	
 	int status;
+	std::string data;
+	std::string uncomp;
+
+	status = lz77_compress(inputFilename, compFilename,data );
+	//status = arith_compress(inputFilename, compFilename);
 	//status = compress(inputFilename, compFilename);
-	status = arith_compress(inputFilename, compFilename);
 	if(status != EXIT_SUCCESS){
 		return status;
 	}
 	std::cout << "compressed size: " << fs_b(compFilename) << " bytes." << std::endl;
 	
-	status = arith_decompress(compFilename, decompFilename);
+	status = lz77_decompress(compFilename, decompFilename,uncomp);
+	//status = arith_decompress(compFilename, decompFilename);
 	//status = decompress(compFilename, decompFilename);
 	if(status != EXIT_SUCCESS){
 		return status;
 	}
 	std::cout << "decompressed size: " << fs_b(decompFilename) << " bytes." << std::endl;
+	
+	if (data != uncomp) {
+		std::cout << "Compression-decompression equivalence test failed!" << std::endl;
+
+		if (data.size() < 1024)
+		    std::cout << "  " << data << std::endl;
+
+		return EXIT_FAILURE;
+	}
 
 	if(true){
 		std::remove(compFilename.c_str());
 		std::remove(decompFilename.c_str());
 	}
 	//const char *outputFile = argv[2];
+	//
 
 }
