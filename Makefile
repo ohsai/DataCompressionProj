@@ -29,7 +29,7 @@ ARITHMETIC_OBJ = ArithmeticCoder.o BitIoStream.o FrequencyTable.o PpmModel.o Ari
 
 TUNSTALL_OBJ = $(LIB)/tunstall.o
 
-LZ_OBJ = $(LIB)/lz77_78_W.o
+LZ_OBJ = $(LIB)/lzw.o
 
 GOLOMB_OBJ = $(LIB)/golomb.o
 

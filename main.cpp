@@ -26,6 +26,7 @@
 #include "huffman/huffman.hpp"
 #include "arithmetic/arithmetic.hpp"
 #include "lz77.h"
+#include "lzw.hpp"
 #include <sstream>
 
 struct bm {
@@ -151,7 +152,8 @@ int main(int argc, char *argv[]) {
 	std::string data;
 	std::string uncomp;
 
-	status = lz77_compress(inputFilename, compFilename,data );
+	status = lzw_compress(inputFilename, compFilename, data );
+	//status = lz77_compress(inputFilename, compFilename,data );
 	//status = arith_compress(inputFilename, compFilename);
 	//status = compress(inputFilename, compFilename);
 	if(status != EXIT_SUCCESS){
@@ -159,7 +161,8 @@ int main(int argc, char *argv[]) {
 	}
 	std::cout << "compressed size: " << fs_b(compFilename) << " bytes." << std::endl;
 	
-	status = lz77_decompress(compFilename, decompFilename,uncomp);
+	status = lzw_decompress(compFilename, decompFilename, uncomp);
+	//status = lz77_decompress(compFilename, decompFilename,uncomp);
 	//status = arith_decompress(compFilename, decompFilename);
 	//status = decompress(compFilename, decompFilename);
 	if(status != EXIT_SUCCESS){
@@ -167,14 +170,17 @@ int main(int argc, char *argv[]) {
 	}
 	std::cout << "decompressed size: " << fs_b(decompFilename) << " bytes." << std::endl;
 	
+	if (data.size() < 80){
+		std::cout << "Content : \n" << data << std::endl;
+		std::cout << "Uncomp : \n" << uncomp << std::endl;
+	}
+	
 	if (data != uncomp) {
 		std::cout << "Compression-decompression equivalence test failed!" << std::endl;
 
-		if (data.size() < 1024)
-		    std::cout << "  " << data << std::endl;
-
 		return EXIT_FAILURE;
 	}
+
 
 	if(true){
 		std::remove(compFilename.c_str());
