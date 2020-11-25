@@ -115,14 +115,18 @@ std::vector<std::string> chars_in_arr (std::unordered_map<char, float> probs, st
 
 void insert_to_vector (std::vector<int> arr, int n)
 {
-	std::string binary_string = "";
+	//std::string binary_string = "";
+	int value = 0;
 
 	for (int i = 0; i < n; i++)
 	{
-		binary_string += std::to_string (arr[i]);
+		value = value << 1;
+		value = value | arr[i];
+		//binary_string += std::to_string (arr[i]);
 	}
 
-	binary_vec.push_back (binary_string);
+	binary_vec.push_back (value);
+	//binary_vec.push_back (binary_string);
 }
 
 

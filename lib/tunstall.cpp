@@ -10,38 +10,21 @@
 #include <bitset>
 
 std::vector<int> binary_vec;
-std::vector<std::string> binary_vec2;
 
-struct Node
+class Node
 {
+public:
 	std::string data;
 	float prob;
 	std::vector<Node*> child;
+	Node(std::string data, float prob);
 };
 
 
-Node* compare (std::vector<Node*> child)
+Node::Node (std::string data, float prob)
 {
-	Node* temp = child[0];
-
-	for (int i=1; i<child.size() ; i++)
-	{
-		if ((child[i]->prob) > (temp->prob))
-		{
-			temp = child[i];
-		}
-	}
-
-	return temp;
-}
-
-
-Node* insert_node (std::string data, float prob)
-{
-	Node* new_node = new Node ();
-	new_node->data = data;
-	new_node->prob = prob;
-	return new_node;
+	this->data = data;
+	this->prob = prob;
 }
 
 
@@ -73,56 +56,40 @@ std::unordered_map<char, float> prob_per_char (std::string data, std::unordered_
 }
 
 
-std::string max_char (std::unordered_map<char, float> probs)
+int max_char_idx (std::unordered_map<char, float> probs)
 {
-	char ch;
+	//char ch;
+	int idx = 0;
 	float max = 0.0;
+	int max_idx = 0;
 	
 	for (auto it = probs.begin (); it != probs.cend (); ++it)
 	{
 		if (it->second > max)
 		{
-			ch = it->first;
+			max_idx = idx;
+			//ch = it->first;
 			max = it->second;
 		}
 	}
 
-	std::string max_char_strg (1, ch);
-	return max_char_strg;
-}
-
-
-std::vector<std::string> chars_in_arr (std::unordered_map<char, float> probs, std::string max_char_strg)
-{
-	std::vector<std::string> strings_to_encode;
-
-	for (auto pair : probs)
-	{
-		std::string new_strg (1, pair.first);
-		if (new_strg != max_char_strg)
-		{
-			strings_to_encode.push_back (new_strg);
-		}
-	}
-
-	return strings_to_encode;
+	return max_idx;
+	//std::string max_char_strg (1, ch);
+	//return max_char_strg;
 }
 
 
 void insert_to_vector (std::vector<int> arr, int n)
 {
-	std::string binary_string = "";
 	int value = 0;
 
 	for (int i = 0; i < n; i++)
 	{
 		value = value << 1;
 		value = value | arr[i];
-		binary_string += std::to_string (arr[i]);
 	}
 
 	binary_vec.push_back (value);
-	binary_vec2.push_back (binary_string);
 }
 
 
@@ -174,54 +141,62 @@ std::tuple<
 	> 
 	tunstall_tree (std::string data, const int n)
 {
-
-	Node* root = new Node ();
-	Node* temp1 = root;
-	Node* temp2 = root;
+	// Scan alphabets and their frequency
 	std::unordered_map<char, int> char_counts;
 	std::unordered_map<char, float> probs;
-
 	char_counts = total_count_per_char (data);
 	probs = prob_per_char (data, char_counts);
-
-	for (auto pair : probs)
-	{
-		std::string chat_to_string (1, pair.first);
-		root->child.push_back(insert_node (chat_to_string, pair.second));
+	int num_alphabets = probs.size();
+	std::cout << "alphabets: " << num_alphabets<<std::endl;
+	if(num_alphabets > pow(2,n)){
+		throw "Number of alphabets cannot be handled with given bit length";
 	}
 
-	std::string max_char_strg = max_char (probs);
-
-	std::vector<std::string> strings_to_encode = chars_in_arr (probs, max_char_strg);
-
-	int iterations = floor (((pow(2, n)) - probs.size ()) / (probs.size () - 1));
-
-	temp1 = compare (temp1->child);
-
-	while (iterations > 0)
+	// Initialize tunstall tree
+	Node* root = new Node ("",1.0);
+	for (auto pair : probs)
 	{
-		std::vector<Node*> childs = temp2->child;
+		std::string ch (1, pair.first);
+		root->child.push_back( new Node (ch, pair.second));
+		std::cout << "char "<<ch << " | prob : " << pair.second<<std::endl;
+	}
+
+	// parameters assignment
+	int max_idx = max_char_idx (probs);
+	std::vector<std::string> strings_to_encode;
+	//int iterations = floor (((pow(2, n)) - probs.size ()) / (probs.size () - 1));
+	int iterations = floor (((pow(2, n))) / (probs.size ()));
+	std::cout << "height: " << iterations<<std::endl;
+
+
+	// Construct tree
+	Node* parent = root;
+	Node* max_child = parent->child[max_idx]; 
+
+	for (int step = 0; step < iterations; step++)
+	{
+		std::vector<Node*> childs = parent->child;
 
 		for (int i = 0; i < childs.size (); i++)
 		{
 			std::string new_string = "";
-			new_string.append (temp1->data);
+			new_string.append (parent->data);
 			new_string.append (root->child[i]->data);
 			strings_to_encode.push_back (new_string);
 
-			float prob = temp1->prob * childs[i]->prob;
-			temp1->child.push_back (insert_node (new_string, prob));
+			float prob = max_child->prob * root->child[i]->prob;
+			max_child->child.push_back (new Node(new_string, prob));
 		}
 
-		temp2 = temp1;
-		temp1 = compare (temp1->child);
-		iterations--;
+		parent = max_child;
+		max_child = parent->child[max_idx]; 
 	}
 
-	int size_of_string_vec = strings_to_encode.size ();
-	std::vector<int> arr(probs.size());
+	// Create binary bit mapping table
+	std::vector<int> arr(num_alphabets);
 	generate_binary (n, arr, 0);
 	
+	// Map tunstall tree to bit mapping
 	std::map<std::string, int> encoded_map = encode (strings_to_encode);
 
 	for (auto pair : encoded_map)
@@ -229,10 +204,10 @@ std::tuple<
 		std::cout << pair.first << "\t\t" <<std::bitset< 64 >( pair.second ) << std::endl;
 	}
 	
-	char max_char_i = max_char_strg[0];
+	// Return output tuple
+	char max_char_i =  root->child[max_idx]->data[0]; //max_char_strg[0];
 	return std::make_tuple(probs, encoded_map, max_char_i);
 
-	// std::cout << "Highest Probability is: " << temp1->prob << " of " << temp1->data << " character." << std::endl;
 }
 
 int tunstall_compress( std::string& inputFile, std::string& outputFile, std::string& origin){
@@ -256,7 +231,19 @@ int tunstall_compress( std::string& inputFile, std::string& outputFile, std::str
 	in.close();
   	origin = data;
 
-	auto output = tunstall_tree(data, n);
+	std::tuple<
+		std::unordered_map<char,float> , 
+		std::map<std::string, int>,
+		char
+		> output;
+
+	try{
+		output = tunstall_tree(data, n);
+	}catch(const char* msg){
+		std::cerr << msg << std::endl;
+		return EXIT_FAILURE;
+	
+	}
 	std::unordered_map<char,float> char_probs = std::get<0>(output);
 	std::map<std::string, int> encoded_map = std::get<1>(output);
 	max_char_i = std::get<2>(output);
