@@ -155,7 +155,7 @@ int main(int argc, char *argv[]) {
 	{
 		bm _x1("Compressing time");
 		status = tunstall_compress(inputFilename, compFilename, data );
-		status = lzw_compress(inputFilename, compFilename, data );
+		//status = lzw_compress(inputFilename, compFilename, data );
 		//status = lz77_compress(inputFilename, compFilename,data );
 		//status = arith_compress(inputFilename, compFilename);
 		//status = compress(inputFilename, compFilename);
@@ -167,7 +167,12 @@ int main(int argc, char *argv[]) {
 	
 	{
         	bm _x2("Decompressing time");
-		status = lzw_decompress(compFilename, decompFilename, uncomp);
+		try{
+		status = tunstall_decompress(compFilename, decompFilename, uncomp);
+		}catch(const char* msg){
+		 std::cout << "Error:"<<msg<<std::endl;
+		}
+		//status = lzw_decompress(compFilename, decompFilename, uncomp);
 		//status = lz77_decompress(compFilename, decompFilename,uncomp);
 		//status = arith_decompress(compFilename, decompFilename);
 		//status = decompress(compFilename, decompFilename);

@@ -103,12 +103,12 @@ int lzw_decompress(std::string& inputFile, std::string& outputFile, std::string&
 		}		  
 		k = (k << 1) | nextbit ;
 	  }
-	  *compressed_it++ = static_cast<int>(k);
 	  if(eof){
 		break;
 	  }
+	  *compressed_it++ = static_cast<int>(k);
   }
-  compressed.pop_back(); // Remove eof
+  //compressed.pop_back(); // Remove eof
 
   std::vector<int>::iterator begin = compressed.begin();
   std::string w(1, *begin++);

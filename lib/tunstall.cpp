@@ -8,6 +8,7 @@
 #include <fstream>
 #include "huffman/BitIoStream.hpp"
 #include <bitset>
+#include <utility>
 
 std::vector<int> binary_vec;
 
@@ -120,7 +121,44 @@ std::map<std::string, int> encode (std::vector<std::string> strings_to_encode)
 
 	return encoded_map;
 }
+std::map<int,std::string> decode (std::vector<std::string> strings_to_encode)
+{
+	std::map<int,std::string> decoded_map;
 
+	for (int i = 0; i < strings_to_encode.size (); i++)
+	{
+		decoded_map.insert ({binary_vec[i],strings_to_encode[i]});
+	}
+
+	return decoded_map;
+}
+int read_bits_noeof(BitInputStream& bin, int bits){
+    if(bits <= 1){
+    	throw "read_bits bits less or equal to 1";
+    }
+    std::uint32_t value = 0;
+    for (int j = 0; j < bits; j++){
+	value = (value << 1) | bin.readNoEof();
+    }  
+    return static_cast<int> (value);
+}
+std::pair<bool,int> read_bits(BitInputStream& bin, int bits){
+    if(bits <= 1){
+    	throw "reada_bits bits less or equal to 1";
+    }
+    std::uint32_t value = 0;
+    bool eof = false;
+    for (int j = 0; j < bits; j++){
+	int nextbit = bin.read();
+	if(nextbit == -1){
+	  eof = true;
+	  std::cout << "[EOF]";
+	  break;
+	}
+	value = (value << 1) | nextbit ;
+    }  
+    return std::make_pair(eof,static_cast<int> (value));
+}
 void write_bits(BitOutputStream& bout, int value, int bits){
     if(bits <= 1){
     	throw "write_bits bits less or equal to 1";
@@ -194,6 +232,7 @@ std::tuple<
 
 	// Create binary bit mapping table
 	std::vector<int> arr(num_alphabets);
+	binary_vec.clear();
 	generate_binary (n, arr, 0);
 	
 	// Map tunstall tree to bit mapping
@@ -256,19 +295,114 @@ int tunstall_compress( std::string& inputFile, std::string& outputFile, std::str
 	for (auto char_prob : char_probs){
 		write_bits(bout, static_cast<int>(char_prob.first), 8);
 	}
+  	std::cout << "Comp:";
 	for (std::string::const_iterator it = data.begin();
 		it != data.end(); ++it) {
 		char c = *it;
-		std::string key = "" + c;
+		std::string key(1,c);
 		while(static_cast<int>(c) == max_char_i){
 			++it;
 			c = *it;
 			key += c;
 		}
 		int value = encoded_map[key];
+	  	std::cout << value << " ";
 		write_bits(bout, value, n);	
 	}
 	bout.finish();
+  	std::cout << std::endl;
   	return EXIT_SUCCESS;
 
 }
+int tunstall_decompress(std::string inputFile, std::string outputFile, std::string& uncomp){
+	  std::ifstream in(inputFile.c_str(), std::ios::binary);
+	  std::ofstream out(outputFile.c_str(), std::ios::binary);
+	  BitInputStream bin(in);
+	  int n, num_alphabets;
+	n = read_bits_noeof(bin,8);
+	num_alphabets = read_bits_noeof(bin, 8);
+	std::string max_char(1,static_cast<char>(read_bits_noeof(bin, 8)));
+	std::vector<std::string> alphabets;
+	int max_idx;
+	for(int i = 0; i < num_alphabets; i++){
+	  std::string ch =  std::string(1, static_cast<char>(read_bits_noeof(bin, 8)));
+	  alphabets.push_back(ch);
+		  if(ch == max_char){
+			max_idx = i;
+		  }
+	}
+  std::vector<int> compressed;
+  std::back_insert_iterator<std::vector<int>> compressed_it = std::back_inserter(compressed);
+  bool eof = false;
+  std::cout << "Comp from Dec:" << std::endl;
+  while(1){
+	  auto output = read_bits(bin, n);
+	  eof = output.first;
+	  std::uint32_t value = output.second;
+	  std::cout << value ;
+	  if(eof){
+		break;
+	  }
+	  *compressed_it++ = static_cast<int>(value);
+  }
+  compressed.pop_back(); // Remove eof
+  std::cout << std::endl;
+  
+	// Create binary bit mapping table
+	binary_vec.clear();
+	std::vector<int> arr(num_alphabets);
+	generate_binary (n, arr, 0);
+  
+	// parameters assignment
+	std::vector<std::string> strings_to_encode;
+	//int iterations = floor (((pow(2, n)) - probs.size ()) / (probs.size () - 1));
+	int iterations = floor (((pow(2, n))) / (num_alphabets));
+	
+	// Initialize tunstall tree
+	Node* root = new Node ("",1.0);
+	for (std::string alphabet : alphabets)
+	{
+		root->child.push_back( new Node (alphabet, 1.0));
+		std::cout << "char "<<alphabet << " | prob : " << 1.0<<std::endl;
+	}
+
+
+	// Construct tree
+	Node* parent = root;
+	Node* max_child = parent->child[max_idx]; 
+
+	for (int step = 0; step < iterations; step++)
+	{
+		std::vector<Node*> childs = parent->child;
+
+		for (int i = 0; i < childs.size (); i++)
+		{
+			std::string new_string = "";
+			new_string.append (parent->data);
+			new_string.append (root->child[i]->data);
+			strings_to_encode.push_back (new_string);
+
+			max_child->child.push_back (new Node(new_string, 1.0));
+		}
+
+		parent = max_child;
+		max_child = parent->child[max_idx]; 
+	}
+	
+  std::cout << "Decomp from Dec:" << std::endl;
+  std::string result;
+	std::map<int,std::string> decoded_map = decode (strings_to_encode);
+	for (std::vector<int>::iterator it = compressed.begin();
+		it != compressed.end(); ++it) {
+		int key = *it;
+	
+		std::string value = decoded_map[key];
+	  	std::cout << value << " ";
+		result += value;
+	}
+	uncomp = result;
+  std::cout << std::endl;
+  return EXIT_SUCCESS;
+
+}
+
