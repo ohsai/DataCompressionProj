@@ -27,6 +27,7 @@
 #include "arithmetic/arithmetic.hpp"
 #include "lz77.h"
 #include "lzw.hpp"
+#include "tunstall.hpp"
 #include <sstream>
 
 struct bm {
@@ -40,7 +41,7 @@ struct bm {
         gettimeofday(&e, NULL);
         size_t a = (e.tv_sec*1e6 + e.tv_usec);
         size_t q = (b.tv_sec*1e6 + b.tv_usec);
-        std::cout << msg << ": " << ((double)a-(double)q)/1e6 << std::endl;
+        std::cout << msg << "(us): " << ((double)a-(double)q)/1e6 << std::endl;
     }
 };
 
@@ -151,24 +152,30 @@ int main(int argc, char *argv[]) {
 	int status;
 	std::string data;
 	std::string uncomp;
-
-	status = lzw_compress(inputFilename, compFilename, data );
-	//status = lz77_compress(inputFilename, compFilename,data );
-	//status = arith_compress(inputFilename, compFilename);
-	//status = compress(inputFilename, compFilename);
+	{
+		bm _x1("Compressing time");
+		status = tunstall_compress(inputFilename, compFilename, data );
+		status = lzw_compress(inputFilename, compFilename, data );
+		//status = lz77_compress(inputFilename, compFilename,data );
+		//status = arith_compress(inputFilename, compFilename);
+		//status = compress(inputFilename, compFilename);
+	}
 	if(status != EXIT_SUCCESS){
 		return status;
 	}
-	std::cout << "compressed size: " << fs_b(compFilename) << " bytes." << std::endl;
+	std::cout << "Compressed size: " << fs_b(compFilename) << " bytes." << std::endl;
 	
-	status = lzw_decompress(compFilename, decompFilename, uncomp);
-	//status = lz77_decompress(compFilename, decompFilename,uncomp);
-	//status = arith_decompress(compFilename, decompFilename);
-	//status = decompress(compFilename, decompFilename);
+	{
+        	bm _x2("Decompressing time");
+		status = lzw_decompress(compFilename, decompFilename, uncomp);
+		//status = lz77_decompress(compFilename, decompFilename,uncomp);
+		//status = arith_decompress(compFilename, decompFilename);
+		//status = decompress(compFilename, decompFilename);
+	}
 	if(status != EXIT_SUCCESS){
 		return status;
 	}
-	std::cout << "decompressed size: " << fs_b(decompFilename) << " bytes." << std::endl;
+	std::cout << "Decompressed size: " << fs_b(decompFilename) << " bytes." << std::endl;
 	
 	if (data.size() < 80){
 		std::cout << "Content : \n" << data << std::endl;

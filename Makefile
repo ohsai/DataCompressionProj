@@ -7,7 +7,7 @@
 # 
 
 
-CXXFLAGS += -std=c++11 -O1 -Wall -Wextra -fsanitize=undefined -Ilib
+CXXFLAGS += -std=c++11 -O1 -Wall -Wextra -fsanitize=undefined -Ilib -g
 
 
 .SUFFIXES:
