@@ -240,7 +240,8 @@ std::tuple<
 
 	for (auto pair : encoded_map)
 	{
-		std::cout << pair.first << "\t\t" <<std::bitset< 64 >( pair.second ) << std::endl;
+		//std::cout << pair.first << "\t\t" <<std::bitset< 64 >( pair.second ) << std::endl;
+		std::cout << pair.first << "\t\t" <<  pair.second  << std::endl;
 	}
 	
 	// Return output tuple
@@ -288,6 +289,7 @@ int tunstall_compress( std::string& inputFile, std::string& outputFile, std::str
 	max_char_i = std::get<2>(output);
 
 	num_alphabets = char_probs.size();	
+	int height = floor (((pow(2, n))) / (num_alphabets));
 
 	write_bits(bout, n, 8);
 	write_bits(bout, num_alphabets, 8);
@@ -295,22 +297,24 @@ int tunstall_compress( std::string& inputFile, std::string& outputFile, std::str
 	for (auto char_prob : char_probs){
 		write_bits(bout, static_cast<int>(char_prob.first), 8);
 	}
-  	std::cout << "Comp:";
+  	//std::cout << "Comp: Height [" <<height << "]" ;
 	for (std::string::const_iterator it = data.begin();
 		it != data.end(); ++it) {
 		char c = *it;
 		std::string key(1,c);
-		while(static_cast<int>(c) == max_char_i){
+		int i = 1;
+		while(static_cast<int>(c) == max_char_i && i < height){
 			++it;
 			c = *it;
 			key += c;
+			i++;
 		}
 		int value = encoded_map[key];
-	  	std::cout << value << " ";
+	  	//std::cout <<"("<<key << ","<< value << ") ";
 		write_bits(bout, value, n);	
 	}
 	bout.finish();
-  	std::cout << std::endl;
+  	//std::cout << std::endl;
   	return EXIT_SUCCESS;
 
 }
@@ -334,19 +338,19 @@ int tunstall_decompress(std::string inputFile, std::string outputFile, std::stri
   std::vector<int> compressed;
   std::back_insert_iterator<std::vector<int>> compressed_it = std::back_inserter(compressed);
   bool eof = false;
-  std::cout << "Comp from Dec:" << std::endl;
+  //std::cout << "Comp from Dec:" << std::endl;
   while(1){
 	  auto output = read_bits(bin, n);
 	  eof = output.first;
 	  std::uint32_t value = output.second;
-	  std::cout << value ;
+	  //std::cout << value ;
 	  if(eof){
 		break;
 	  }
 	  *compressed_it++ = static_cast<int>(value);
   }
-  compressed.pop_back(); // Remove eof
-  std::cout << std::endl;
+  //compressed.pop_back(); // Remove eof
+  //std::cout << std::endl;
   
 	// Create binary bit mapping table
 	binary_vec.clear();
@@ -363,7 +367,7 @@ int tunstall_decompress(std::string inputFile, std::string outputFile, std::stri
 	for (std::string alphabet : alphabets)
 	{
 		root->child.push_back( new Node (alphabet, 1.0));
-		std::cout << "char "<<alphabet << " | prob : " << 1.0<<std::endl;
+		//std::cout << "char "<<alphabet << " | prob : " << 1.0<<std::endl;
 	}
 
 
@@ -389,7 +393,7 @@ int tunstall_decompress(std::string inputFile, std::string outputFile, std::stri
 		max_child = parent->child[max_idx]; 
 	}
 	
-  std::cout << "Decomp from Dec:" << std::endl;
+  //std::cout << "Decomp from Dec:" << std::endl;
   std::string result;
 	std::map<int,std::string> decoded_map = decode (strings_to_encode);
 	for (std::vector<int>::iterator it = compressed.begin();
@@ -397,7 +401,7 @@ int tunstall_decompress(std::string inputFile, std::string outputFile, std::stri
 		int key = *it;
 	
 		std::string value = decoded_map[key];
-	  	std::cout << value << " ";
+	  	//std::cout<<"(" <<key << ","<< value << ") ";
 		result += value;
 	}
 	uncomp = result;

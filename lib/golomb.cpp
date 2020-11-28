@@ -1,10 +1,12 @@
 //#define _CRT_SECURE_NO_DEPRECATE
 //#include "stdafx.h"
 #include <math.h>
-#include "stdio.h"
+#include <stdio.h>
 #include "stdlib.h"
 #include <time.h>
 #include "golomb.hpp"
+#include <fstream>
+#include <string>
 /*
 #define p 0.9655
 #define m 9
@@ -13,7 +15,8 @@
 #define size 10000
 */
 
-float p = 0.9655;
+//float p = 0.9655;
+float p = 0.2;
 int m = 9;
 int b = (int)ceil(logf((double)m)/logf(2.0));
 int c = (int)pow(2.0,(double)b)-m;
@@ -134,7 +137,9 @@ void coder_gol(int *n, int **mas, FILE *out, FILE *out1, int use_m, int use_b, i
 	int count = 0;
 	char buf = 0;
 	for (int i = 0; i < size; i++) {
-		fprintf(out, "%d", n[i]);
+		if(out != NULL){
+			fprintf(out, "%d", n[i]);
+		}
 		q = (int)floor(n[i] / use_m);
 		for (int i = 0; i < q; i++) {
 			buf = buf | 0 << (7 - count);
@@ -270,6 +275,44 @@ double Entropy(FILE *out1){ // вычисление практического значения энтропии
 	}
 	entropy = cnt*8 / size;
 	return entropy;
+}
+int gol_compress(std::string inputFile, std::string outputFile, std::string& origin){
+	std::ifstream in(inputFile.c_str(),  std::ios::in | std::ios::binary);
+
+	std::string data;
+	in.seekg(0, std::ios::end);
+	data.resize(in.tellg());
+	in.seekg(0, std::ios::beg);
+	in.read(&data[0], data.size());
+	in.close();
+	origin = data;
+
+
+	FILE *out = NULL;
+	FILE *out1 = fopen(outputFile.c_str(), "wb+");
+	int *arr = new int[data.size()];
+	int **mas = new int*[m];
+	for (int i = 0; i < m; i++)
+		mas[i] = new int[b];
+	mas = table(m, b, c);
+	for (int i = 0; i < size; i++) {
+		arr[i] = static_cast<int>(data[i]);
+	}
+	arr[0] = 0;
+
+	coder_gol(arr, mas, out, out1, m, b, c);
+	fclose(out);
+	fclose(out1);
+	return EXIT_SUCCESS;
+}
+int gol_decompress(std::string inputFile, std::string outputFile, std::string& uncomp){
+	FILE *out1 = fopen(inputFile.c_str(), "rb+");
+	FILE *out2 = fopen(outputFile.c_str(), "wb+");
+	decoder_gol(out1, out2, m, b, c);
+	uncomp = "";
+	fclose(out1);
+	fclose(out2);
+	return EXIT_SUCCESS;
 }
 
 void GolombsCode(int use_m, int use_b, int use_c){

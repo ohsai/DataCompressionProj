@@ -28,6 +28,7 @@
 #include "lz77.h"
 #include "lzw.hpp"
 #include "tunstall.hpp"
+#include "argparse.hpp"
 #include <sstream>
 
 struct bm {
@@ -135,15 +136,27 @@ int lz77_decompress(std::string inputFile, std::string outputFile, std::string& 
 	}
 }
 int main(int argc, char *argv[]) {
+	argparse::ArgumentParser program("program name");
+	program.add_argument("mode")
+	  .help("compression mode [lz77/lzw/huff/adahuff/arith/tun]")
+	  .action([](const std::string& value) { return value; });
+	program.add_argument("inputFile")
+	  .help("inputFile path to compress")
+	  .action([](const std::string& value) { return value; });
 	// Handle command line arguments
-	if (argc != 2) {
-		std::cerr << "Usage: " << argv[0] << " InputFile" << std::endl;
-		return EXIT_FAILURE;
+
+	try {
+	  program.parse_args(argc, argv); 
+	}
+	catch (const std::runtime_error& err) {
+	  std::cout << err.what() << std::endl;
+	  std::cout << program;
+	  exit(0);
 	}
 	std::string comp_ext = ".enc";
 	std::string decomp_ext = ".dec";
 	
-	std::string inputFilename  = argv[1];
+	std::string inputFilename  =  program.get<int>("inputFile"); 
 	std::string compFilename = (inputFilename + comp_ext);
 	std::string decompFilename = (inputFilename + decomp_ext);
 	
