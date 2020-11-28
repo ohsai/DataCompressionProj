@@ -144,6 +144,10 @@ int main(int argc, char *argv[]) {
 	  .help("inputFile path to compress")
 	  .action([](const std::string& value) { return value; });
 	// Handle command line arguments
+	program.add_argument("--num_bits")
+	  .help("Number of fixed bits for tunstall")
+	  .default_value(8)
+	  .action([](const std::string& value) { return std::stoi(value); });
 
 	try {
 	  program.parse_args(argc, argv); 
@@ -156,22 +160,38 @@ int main(int argc, char *argv[]) {
 	std::string comp_ext = ".enc";
 	std::string decomp_ext = ".dec";
 	
-	std::string inputFilename  =  program.get<int>("inputFile"); 
-	std::string compFilename = (inputFilename + comp_ext);
+	std::string inputFilename  =  program.get<std::string>("inputFile"); 
+	std::string mode = program.get<std::string>("mode");
+	std::string compFilename = (inputFilename+"." + mode + comp_ext);
 	std::string decompFilename = (inputFilename + decomp_ext);
 	
 	std::cout << "input size: " << fs_b(inputFilename) << " bytes." << std::endl;
 	
-	int status;
+	int status = EXIT_SUCCESS;
 	std::string data;
 	std::string uncomp;
 	{
 		bm _x1("Compressing time");
-		status = tunstall_compress(inputFilename, compFilename, data );
-		//status = lzw_compress(inputFilename, compFilename, data );
-		//status = lz77_compress(inputFilename, compFilename,data );
-		//status = arith_compress(inputFilename, compFilename);
-		//status = compress(inputFilename, compFilename);
+		if(mode == "tun"){
+			int num_bits = program.get<int>("--num_bits");
+			status = tunstall_compress(inputFilename, compFilename, data, num_bits );
+		}	
+		if(mode == "lzw"){
+			status = lzw_compress(inputFilename, compFilename, data );
+		}	
+		if(mode == "lz77"){
+			status = lz77_compress(inputFilename, compFilename,data );
+		}	
+		if(mode == "arith"){
+			status = arith_compress(inputFilename, compFilename);
+		}	
+		if(mode == "huff"){
+			status = huffman_compress(inputFilename, compFilename);
+		}	
+		if(mode == "adahuff"){
+			status = adapt_huffman_compress(inputFilename, compFilename);
+		}	
+
 	}
 	if(status != EXIT_SUCCESS){
 		return status;
@@ -181,24 +201,38 @@ int main(int argc, char *argv[]) {
 	{
         	bm _x2("Decompressing time");
 		try{
+		if(mode == "tun"){
 		status = tunstall_decompress(compFilename, decompFilename, uncomp);
+		}	
+		if(mode == "lzw"){
+			status = lzw_decompress(compFilename, decompFilename, uncomp);
+		}	
+		if(mode == "lz77"){
+			status = lz77_decompress(compFilename, decompFilename,uncomp);
+		}	
+		if(mode == "arith"){
+			status = arith_decompress(compFilename, decompFilename);
+		}	
+		if(mode == "huff"){
+			status = huffman_decompress(compFilename, decompFilename);
+		}	
+		if(mode == "adahuff"){
+			status = adapt_huffman_decompress(compFilename, decompFilename);
+		}	
 		}catch(const char* msg){
 		 std::cout << "Error:"<<msg<<std::endl;
 		}
-		//status = lzw_decompress(compFilename, decompFilename, uncomp);
-		//status = lz77_decompress(compFilename, decompFilename,uncomp);
-		//status = arith_decompress(compFilename, decompFilename);
-		//status = decompress(compFilename, decompFilename);
 	}
 	if(status != EXIT_SUCCESS){
 		return status;
 	}
 	std::cout << "Decompressed size: " << fs_b(decompFilename) << " bytes." << std::endl;
-	
+	/*
 	if (data.size() < 80){
 		std::cout << "Content : \n" << data << std::endl;
 		std::cout << "Uncomp : \n" << uncomp << std::endl;
 	}
+	*/
 	
 	if (data != uncomp) {
 		std::cout << "Compression-decompression equivalence test failed!" << std::endl;
@@ -208,7 +242,7 @@ int main(int argc, char *argv[]) {
 
 
 	if(true){
-		std::remove(compFilename.c_str());
+		//std::remove(compFilename.c_str());
 		std::remove(decompFilename.c_str());
 	}
 	//const char *outputFile = argv[2];

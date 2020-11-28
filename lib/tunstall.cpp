@@ -152,7 +152,7 @@ std::pair<bool,int> read_bits(BitInputStream& bin, int bits){
 	int nextbit = bin.read();
 	if(nextbit == -1){
 	  eof = true;
-	  std::cout << "[EOF]";
+	  //std::cout << "[EOF]";
 	  break;
 	}
 	value = (value << 1) | nextbit ;
@@ -185,7 +185,7 @@ std::tuple<
 	char_counts = total_count_per_char (data);
 	probs = prob_per_char (data, char_counts);
 	int num_alphabets = probs.size();
-	std::cout << "alphabets: " << num_alphabets<<std::endl;
+	//std::cout << "alphabets: " << num_alphabets<<std::endl;
 	if(num_alphabets > pow(2,n)){
 		throw "Number of alphabets cannot be handled with given bit length";
 	}
@@ -196,7 +196,7 @@ std::tuple<
 	{
 		std::string ch (1, pair.first);
 		root->child.push_back( new Node (ch, pair.second));
-		std::cout << "char "<<ch << " | prob : " << pair.second<<std::endl;
+		//std::cout << "char "<<ch << " | prob : " << pair.second<<std::endl;
 	}
 
 	// parameters assignment
@@ -204,7 +204,7 @@ std::tuple<
 	std::vector<std::string> strings_to_encode;
 	//int iterations = floor (((pow(2, n)) - probs.size ()) / (probs.size () - 1));
 	int iterations = floor (((pow(2, n))) / (probs.size ()));
-	std::cout << "height: " << iterations<<std::endl;
+	//std::cout << "height: " << iterations<<std::endl;
 
 
 	// Construct tree
@@ -237,12 +237,13 @@ std::tuple<
 	
 	// Map tunstall tree to bit mapping
 	std::map<std::string, int> encoded_map = encode (strings_to_encode);
-
+	/*
 	for (auto pair : encoded_map)
 	{
 		//std::cout << pair.first << "\t\t" <<std::bitset< 64 >( pair.second ) << std::endl;
-		std::cout << pair.first << "\t\t" <<  pair.second  << std::endl;
+		//std::cout << pair.first << "\t\t" <<  pair.second  << std::endl;
 	}
+	*/
 	
 	// Return output tuple
 	char max_char_i =  root->child[max_idx]->data[0]; //max_char_strg[0];
@@ -250,10 +251,11 @@ std::tuple<
 
 }
 
-int tunstall_compress( std::string& inputFile, std::string& outputFile, std::string& origin){
+int tunstall_compress( std::string& inputFile, std::string& outputFile, std::string& origin, int num_bits){
 	int n, num_alphabets,max_char_i ;
-	std::cout << "Enter bit length: ";
-	std::cin >> n;
+	n = num_bits;
+	std::cout << "Bit length: " << num_bits << std::endl;
+	//std::cin >> n;
 	if( n > 256){
 		std::cout << "Error : codelength > 256" << std::endl;
 	}
@@ -401,11 +403,13 @@ int tunstall_decompress(std::string inputFile, std::string outputFile, std::stri
 		int key = *it;
 	
 		std::string value = decoded_map[key];
-	  	//std::cout<<"(" <<key << ","<< value << ") ";
+	  	//std::cout<< key << " ";
 		result += value;
 	}
 	uncomp = result;
-  std::cout << std::endl;
+  out << result;
+  out.close();
+  //std::cout << std::endl;
   return EXIT_SUCCESS;
 
 }

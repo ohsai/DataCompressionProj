@@ -6,8 +6,8 @@
 # https://github.com/nayuki/Reference-Huffman-coding
 # 
 
-
-CXXFLAGS += -std=c++11 -O1 -Wall -Wextra -fsanitize=undefined -Ilib -g
+CXX = g++-8
+CXXFLAGS += -std=c++17 -O1 -Wall -Wextra -fsanitize=undefined -Ilib -g
 
 
 .SUFFIXES:
