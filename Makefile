@@ -45,6 +45,9 @@ clean:
 	rm -rf -- $(OBJDIR) $(MAIN) #$(MAIN:=.o) $(MAIN)
 	rm -rf $(DEPDIR)
 
+benchmark:
+	python3 benchmark.py
+
 $(MAIN): $(OBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $^
 

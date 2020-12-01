@@ -18,8 +18,9 @@ for algo in comp_algos :
                 print(cmd)
                 os.system( cmd);
                 if bits == tun_best[idx] : 
-                    os.system("gzip -c " + encpath + " > " + zippath + ".gz");
-                    os.system("bzip2 -c " + encpath + " > " + zippath + ".bz2");
+                    os.system("gzip -c " + encpath + " > " + zippath + ".gz")
+                    os.system("bzip2 -c " + encpath + " > " + zippath + ".bz2")
+                os.system("rm -f " + encpath)
         else :
             cmd = "./main "+algo+" "+ datapath;
             print("-----------------")
@@ -27,3 +28,4 @@ for algo in comp_algos :
             os.system(cmd);
             os.system("gzip -c " + encpath + " > " + zippath + ".gz");
             os.system("bzip2 -c " + encpath + " > " + zippath + ".bz2");
+            os.system("rm -f " + encpath)
